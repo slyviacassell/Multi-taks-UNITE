@@ -1,0 +1,98 @@
+name: UNITE_lr_ablation
+labels:
+  - nyud
+  - vgg
+  - additive
+  - unpool
+  - '4'
+  - 200 epochs
+  - onecycle cos epoch
+  - sgd
+  - bias no weights decay
+  - weight decay 2.5e-4
+  - bn after activation
+  - 1,100,50,10,20
+  - '1e-3'
+  - '100,10,20'
+  - 'seed 0'
+  - no swapping
+  - normal 20
+
+# initial validation
+perform_initial_validation: true
+# validation period
+# in fact, it would validate at epoch*records_per_epoch // global_batch_size
+min_validation_period:
+  epochs: 10
+min_checkpoint_period:
+  epochs: 100
+bind_mounts:
+  - host_path: /mnt/node4_share/tyx
+    container_path: /workspace
+    read_only: false
+
+hyperparameters:
+  config:
+    type: categorical
+    vals:
+      - ./experiments/mtl/UNITE_hyper_search_vgg16v1/lr_1.yaml
+      - ./experiments/mtl/UNITE_hyper_search_vgg16v1/lr_10.yaml
+      - ./experiments/mtl/UNITE_hyper_search_vgg16v1/lr_50.yaml
+      - ./experiments/mtl/UNITE_hyper_search_vgg16v1/lr_100.yaml
+      - ./experiments/mtl/UNITE_hyper_search_vgg16v1/lr_1000.yaml
+  global_batch_size: 8
+  n_workers: 4
+
+  # debug flag
+  debug: true
+
+optimizations:
+  mixed_precision: O0
+  # gradient accumulation
+  aggregation_frequency: 1
+  average_aggregated_gradients: true
+  auto_tune_tensor_fusion: true
+  # see determined\pytorch\_pytorch_trial.py#Line425 for details
+  average_training_metrics: false
+  gradient_compression: false
+
+
+# full train records
+# actually, the training size is 795,
+# here, we set to 800 for the compatible purpose of the last incomplete batch
+#records_per_epoch: 795
+records_per_epoch: 800
+
+# hyperparameter search
+searcher:
+  name: grid
+  metric: validation_loss
+  max_length:
+    epochs: 200
+  max_concurrent_trials: 4
+  smaller_is_better: true
+entrypoint: mtl_train_eval:UNITETrainEvalTrail
+
+reproducibility:
+  experiment_seed: 0
+
+environment:
+  environment_variables:
+    - NCCL_SOCKET_IFNAME=eno1
+#    - NCCL_DEBUG=INFO
+    - NCCL_DEBUG_SUBSYS=ALL
+
+resources:
+  slots_per_trial: 1
+#  resource_pool: 1080ti
+  resource_pool: titan_xp_x2
+#  resource_pool: 3090_x2
+
+checkpoint_storage:
+  type: shared_fs
+  host_path: /mnt/node4_share
+  storage_path: determined-checkpoint/UNITE-checkpoint
+
+# cannot be used for det --test
+profiling:
+  enabled: true

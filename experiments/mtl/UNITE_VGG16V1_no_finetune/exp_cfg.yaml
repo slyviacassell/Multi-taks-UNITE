@@ -1,0 +1,4 @@
+MODEL:
+  SHORTCUT: True
+MTL:
+  WEIGHT_PER_TASK: ['DeepLab', 'DeepLab']

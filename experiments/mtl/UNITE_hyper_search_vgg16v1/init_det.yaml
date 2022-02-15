@@ -88,9 +88,7 @@ environment:
 
 resources:
   slots_per_trial: 1
-  resource_pool: 1080ti
-#  resource_pool: titan_xp_x2
-#  resource_pool: 3090_x2
+  resource_pool: titan_xp_x2
 
 checkpoint_storage:
   type: shared_fs
